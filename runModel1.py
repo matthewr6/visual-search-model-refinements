@@ -82,13 +82,15 @@ def check_bounds(x, y):
     return x >= bounds[0] and x <= bounds[1] and y >= bounds[2] and y <= bounds[3]
 
 img = scipy.misc.imread('example.png')
+# import cv2
+# img = cv2.imread('example.png')
 # img = scipy.misc.imread('hatonly.png', mode='I')
 # img = scipy.misc.imread('objectimages/1.normal.png')
 # img = scipy.misc.imread('stimuli/1.array{}.ot.png'.format(stimnum))
 S1outputs = Model1.runS1layer(img, s1filters)
 C1outputs = Model1.runC1layer(S1outputs)
 S2boutputs = Model1.runS2blayer(C1outputs, imgprots)
-feedback = Model1.feedbackSignal(objprots, targetIndex, imgC2b)
+feedback = Model1.feedbackSignal(objprots, targetIndex)
 print 'feedback info: ', feedback.shape
 lipmap = Model1.topdownModulation(S2boutputs,feedback)
 protID = np.argmax(feedback)

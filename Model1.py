@@ -15,7 +15,7 @@ import time
 reload(opt)
 
 #DEBUG
-np.seterr(all='raise') #Floating point errors generate an actual exception rather than a warning
+# np.seterr(all='raise') #Floating point errors generate an actual exception rather than a warning
 
 
 def buildS1filters():
@@ -49,6 +49,7 @@ def buildS1filters():
 			myfilt = myfilt / np.sqrt(np.sum(myfilt**2))
 			filtsthissize.append(myfilt.astype('float'))
 		filts.append(filtsthissize)
+	print 'done building'
 	return filts
 
 def runC1layer(S1outputs):
@@ -78,9 +79,9 @@ def runC1layer(S1outputs):
 		output.append(np.dstack(out[:]))
 
 	# print 'C1 layer shape: ', len(output), output[0].shape
-	print 'shapes'
-	for idx, o in enumerate(output):
-		print '{},{}'.format(opt.S1RFSIZES[idx], o.shape[0])
+	# print 'shapes'
+	# for idx, o in enumerate(output):
+	# 	print '{},{}'.format(opt.S1RFSIZES[idx], o.shape[0])
 	return output
 	
 
@@ -226,7 +227,10 @@ def myNormCrossCorr(stack, prot):
 	following Kouh's method.
 
 	"""
-
+	if len(prot.shape) < 3:
+		prot = prot[:,:,np.newaxis]
+	if len(stack.shape) < 3:
+		stack = stack[:,:,np.newaxis]
 	assert prot.shape[2] == stack.shape[2]
 	NBPROTS = prot.shape[2]
 	RFSIZE = prot.shape[0] # Assuming square RFs, always
@@ -393,7 +397,7 @@ def getC2bAverage(objprots):
 	return np.mean(objprots,axis=0)
 
 
-def feedbackSignal(objprots, targetIndx, imgC2b): #F(o,P), Eq 4
+def feedbackSignal(objprots, targetIndx): #F(o,P), Eq 4
 	# c2b = np.zeros((len(objprots),objprots[0][0].shape[2])) #creates a num_obj x num_prot matrix
 	# for obj_id in xrange(len(objprots)):
 	# 	obj = objprots[obj_id]
@@ -403,8 +407,12 @@ def feedbackSignal(objprots, targetIndx, imgC2b): #F(o,P), Eq 4
 	# 	c2b[obj_id] = np.max(np.asarray(max_acts),axis=0)
 
 	C2bavg = getC2bAverage(objprots)	#changed from objprots
+	C2bavg[C2bavg == 0] = float('inf')
 	# print 'C2bavg shape', C2bavg.shape
 	# print 'Target c2b shape', len(objprots), objprots[0].shape
+	# print objprots[targetIndx]
+	# print C2bavg
+	# feedback = np.nan_to_num(objprots[targetIndx]/C2bavg)
 	feedback = objprots[targetIndx]/C2bavg
 	# print 'objprots[target].shape', objprots[targetIndx].shape
 #	feedback = ((feedback - np.min(feedback))/np.max(feedback))+1
@@ -430,13 +438,19 @@ def imgDynamicRange(inmap):
 	return [normalized, minVal,maxVal]
 
 
-def topdownModulation(S2boutputs,feedback): #LIP MAP
+# todo
+def topdownModulation(S2boutputs,feedback,norm=True): #LIP MAP
 	#s2boutputs dimension: numScales x n x n x numProts
 	lipMap = []
 	for scale in xrange(len(S2boutputs)):
 		S2bsum = np.sum(S2boutputs[scale], axis = 2)
 		S2bsum = S2bsum[:,:,np.newaxis]
-		lip = (S2boutputs[scale] * feedback)/(S2bsum + opt.STRNORMLIP)
+		# print S2bsum.shape
+		norm = True
+		if norm:
+			lip = (S2boutputs[scale] * feedback)/(S2bsum + opt.STRNORMLIP)
+		else:
+			lip = S2boutputs[scale] * feedback
 		lipMap.append(lip)
 	return lipMap
 
@@ -702,3 +716,8 @@ def crop_s2boutputs(s2boutputs, prio):
 		cropped.append(scale[bottom_bound:top_bound, left_bound:right_bound])
 
 	return cropped
+
+def runS1C1(img, s1filters):
+	s1out = runS1layer(img, s1filters)
+	c1out = runC1layer(s1out)
+	return c1out
