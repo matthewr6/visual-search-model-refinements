@@ -21,33 +21,34 @@ def save_priomap(prio, name):
     # plt.imshow(gaussian_filter(pmap, sigma=3), cmap='hot')
     plt.imsave('{}.png'.format(name), gaussian_filter(pmap, sigma=3), format='png', cmap='hot')
 
-with open('sample_unmodified_prio.dat', 'rb') as f:
+with open('sample_priomap.dat', 'rb') as f:
     priorityMap = cPickle.load(f)
 
 
-with open('sample_unmodified_lip.dat', 'rb') as f:
-    lipmap = cPickle.load(f)
+# with open('sample_unmodified_lip.dat', 'rb') as f:
+#     lipmap = cPickle.load(f)
 
-priorityMap = Model1.priorityMap(lipmap,[256,256])
-# print np.mean(priorityMap)
+# priorityMap = Model1.priorityMap(lipmap,[256,256])
+# # print np.mean(priorityMap)
 
-save_priomap(priorityMap, 'exhat_color')
+# save_priomap(priorityMap, 'exhat_color')
 
-inhibitions = 4
+inhibitions = 3
 displays = [priorityMap]
 for i in xrange(inhibitions):
     n = Model1.inhibitionOfReturn(displays[-1])
     print n[1:]
     displays.append(n[0])
 
-fig,ax = plt.subplots(nrows = len(displays), ncols = 2)
-# plt.gray()
+fig,ax = plt.subplots(nrows = len(displays),ncols=2)
+plt.gray()
 # plt.pcolor(gaussian_filter(np.exp(np.exp(np.exp(priorityMap))), sigma=3), cmap='hot')
 for idx, pmap in enumerate(displays):
     pmap = np.exp(np.exp(Model1.scale(pmap)))
-    ax[idx, 0].imshow(gaussian_filter(pmap, sigma=3), cmap='hot')
+    ax[idx,0].imshow(gaussian_filter(pmap, sigma=3))#, cmap='hot')
 
-    pmap = np.exp(pmap)
-    ax[idx, 1].imshow(gaussian_filter(pmap, sigma=3), cmap='hot')
+for idx, pmap in enumerate(displays):
+    pmap = np.exp(np.exp(np.exp(Model1.scale(pmap))))
+    ax[idx,1].imshow(gaussian_filter(pmap, sigma=3))#, cmap='hot')
 
 plt.show()

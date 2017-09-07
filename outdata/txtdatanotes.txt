@@ -1,0 +1,11 @@
+try doing only redvs green against previous data to compare slopes
+
+also try making sigma a little larger - larger is 17.5 and 10 instead of 15/7.5
+
+smaller is 12.5/5
+
+conjunctions_objresized: resized, 15/7.5
+conjunctions_smallerinhibition: resized, 12.5/5
+larger_inhibition: 17.5/10
+
+redgreen is smaller + normal size (I think...)

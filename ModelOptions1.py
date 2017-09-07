@@ -19,16 +19,20 @@ NBKEPTWEIGHTS = 100
 IMAGESFORPROTS = './naturalimages'
 # IMAGESFOROBJPROTS = './objectimages'
 # IMAGESFOROBJPROTS = './gdrivesets/objs'
-# IMAGESFOROBJPROTS = './colorobjs'
-IMAGESFOROBJPROTS = './complexcolorobjs'
+IMAGESFOROBJPROTS = './images/colorobjs'
+# IMAGESFOROBJPROTS = './complexcolorobjs'
 
 # GAUSSFACTOR = 150.0
 # IORSIGMA = 35
 # IORSIGMA = 17.5
+IORSIGMA = 17.5
 # GAUSSFACTOR = 25.0
-IORSIGMA = 15
+# IORSIGMA = 35
+# IORSIGMA = 15
 # GAUSSFACTOR = 150.0
-GAUSSFACTOR = 7.5
+# GAUSSFACTOR = 10.0
+GAUSSFACTOR = 10.0
+# GAUSSFACTOR = 7.5
 
 # 15 and 7.5
 # try 25 for sigma?
