@@ -38,8 +38,8 @@ plt.ylabel('Fixation count')
 plt.savefig('graphs/regressioncompare.png')
 plt.clf()
 
-labels = ['shapepopout', 'shapepopout_color', 'colorpopout', 'colorpopout_bw']
-datatypes = ['shapepopout', 'shapepopout_color', 'colorpopout', 'colorpopout_bw']
+labels = ['shapepopout', 'shapepopout_color', 'colorpopout', 'colorpopout_bw', 'shapepopout_doubleonly']
+datatypes = ['shapepopout', 'shapepopout_color', 'colorpopout', 'colorpopout_bw', 'shapepopout_doubleonly']
 lines = []
 
 for datatype in datatypes:

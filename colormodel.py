@@ -54,7 +54,7 @@ def transform_c1out(c1out):
 
 imgdir = './images/colorrandoms'
 objdir = './images/colorobjs'
-def buildImageProts(numProts, single_only=False): 
+def buildImageProts(numProts, single_only=False, double_only=False): 
     print 'Building ', numProts, 'protoypes from natural images'
     imgfiles = os.listdir(imgdir)
     prots = []
@@ -68,11 +68,11 @@ def buildImageProts(numProts, single_only=False):
         if(imgfile == '._.DS_Store' or imgfile == '.DS_Store'):
             selectedImg = random.choice(range(len(imgfiles)))
             imgfile = imgfiles[selectedImg]
-        c1out = runS1C1(imgdir+'/'+imgfile, single_only=single_only)
+        c1out = runS1C1(imgdir+'/'+imgfile, single_only=single_only, double_only=double_only)
         prots.append(model.extract3DPatch(c1out, nbkeptweights=300)) # 100 x (12/4) = 300
     return prots
 
-def buildObjProts(imgProts, resize=True, single_only=False): #computing C2b
+def buildObjProts(imgProts, resize=True, single_only=False, double_only=False): #computing C2b
     print 'Building object protoypes' 
     imgfiles = os.listdir(objdir) #changed IMAGESFOROBJPROTS to IMAGESFORPROTS
     print imgfiles
@@ -94,7 +94,7 @@ def buildObjProts(imgProts, resize=True, single_only=False): #computing C2b
             img = cv2.resize(img, (64, 64))
         
         t = time.time()
-        C1outputs = runS1C1(objdir +'/'+imgfile, img, single_only=single_only)
+        C1outputs = runS1C1(objdir +'/'+imgfile, img, single_only=single_only, double_only=double_only)
 
         S2boutputs = model.runS2blayer(C1outputs, imgProts)
         #compute max for a given scale
@@ -158,10 +158,9 @@ def bound_dict_of_mats(d):
     return (m1, m2)
 
 so_order = ['wb','bw','rg','gr','yb','by']
-# try running the shapepopout (after making prots!!! do this in separatefile in case it's bad)
-# with so_flattened[i]/255.0 andsee if it makes a difference
-# this would require rerunning all combo ones (colorpopout, conjunction, shapepopout) if it works
-def runS1C1(imgpath, img=None, single_only=False):
+# try having so be only rg/gr/yb/by and do being only rg/by/bw
+def runS1C1(imgpath, img=None, single_only=False, double_only=False):
+    print double_only
     if img is None:
         img = cv2.cvtColor(cv2.imread(imgpath), cv2.COLOR_RGB2Lab)
     so = single_opponents(img) # six
@@ -169,22 +168,24 @@ def runS1C1(imgpath, img=None, single_only=False):
     do_filtered = {}
     for d in do:
         do_filtered[d] = model.runS1layer(do[d], s1filters)
-    sizes = [i.shape[:2] for i in do_filtered['wb']] # why do I have to reverse? unsure
-    so_resized = {}
-    for s in so:
-        so_resized[s] = [cv2.resize(so[s], size[::-1]) for size in sizes] # each is 12 x n x n
 
-    # should I normalize (separately) and how should I normalize (by orientation/color or together)
+    if not double_only:
+        sizes = [i.shape[:2] for i in do_filtered['wb']] # why do I have to reverse? unsure
+        so_resized = {}
+        for s in so:
+            so_resized[s] = [cv2.resize(so[s], size[::-1]) for size in sizes] # each is 12 x n x n
+        so_flattened = transform_c1out([so_resized[s] for s in so_resized]) # ends being 12 x n x n x 6
 
-    so_flattened = transform_c1out([so_resized[s] for s in so_resized]) # ends being 12 x n x n x 6
     do_flattened = transform_c1out([do_filtered[d] for d in do_filtered]) # ends being 12 x n x n x 12
 
     s1out = []
     for i in range(12):
         if single_only:
             s1out.append(so_flattened[i]/255.0)
+        elif double_only:
+            s1out.append(do_flattened[i])
         else:
-            s1out.append(np.dstack((do_flattened[i], so_flattened[i]/255.0)))
+            s1out.append(np.dstack((do_flattened[i], so_flattened[i])))
     c1out = model.runC1layer(s1out)
     return c1out
 
@@ -223,9 +224,9 @@ def main(which, outname, scenepath):
             already_run = []
 
         paths = os.listdir('./scenes/{}'.format(scenepath))
-        with open('./prots/comboimgprots_colornorm.dat', 'rb') as f:
+        with open('./prots/comboimgprots_doubleonly.dat', 'rb') as f:
             imgprots = cPickle.load(f)
-        with open('./prots/comboobjprots_colornorm.dat', 'rb') as f:
+        with open('./prots/comboobjprots_doubleonly.dat', 'rb') as f:
             objprots = cPickle.load(f)
         with open('outdata/txtdata/{}.txt'.format(outname), 'ab') as f:
             for p in paths:
@@ -237,7 +238,7 @@ def main(which, outname, scenepath):
 
                 print p
 
-                c1out = runS1C1('./scenes/{}/{}'.format(scenepath, p))
+                c1out = runS1C1('./scenes/{}/{}'.format(scenepath, p), double_only=True)
                 print 'c1out done'
                 s2bout = model.runS2blayer(c1out, imgprots)
                 print 's2b done'
@@ -407,13 +408,13 @@ def main(which, outname, scenepath):
             cPickle.dump(objprots, f, protocol=-1)
 
     if which == 'allprots':
-        imgprots = buildImageProts(600)
-        with open('prots/comboimgprots_colornorm.dat', 'wb') as f:
+        imgprots = buildImageProts(600, double_only=True)
+        with open('prots/comboimgprots_doubleonly.dat', 'wb') as f:
             cPickle.dump(imgprots, f, protocol=-1)
-        with open('prots/comboimgprots_colornorm.dat', 'rb') as f:
+        with open('prots/comboimgprots_doubleonly.dat', 'rb') as f:
             imgprots = cPickle.load(f)
-        objprots = buildObjProts(imgprots)
-        with open('prots/comboobjprots_colornorm.dat', 'wb') as f:
+        objprots = buildObjProts(imgprots, double_only=True)
+        with open('prots/comboobjprots_doubleonly.dat', 'wb') as f:
             cPickle.dump(objprots, f, protocol=-1)
 
     if which == 'prots_color':
@@ -489,7 +490,7 @@ if __name__ == '__main__':
     modes = ['run', 'show', 'imgprots', 'objprots', 'batch', 'allprots', 'batch_bw', 'prots_bw', 'prots_color', 'batch_color']
 
     which = 'batch'
-    outname = 'shapepopout_colornorm'
+    outname = 'shapepopout_doubleonly'
     scenepath = 'shapepopout'
     
     assert which in modes
