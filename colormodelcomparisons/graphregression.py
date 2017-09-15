@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 # sns.set(style="white")
 
-labels = ['Serial', 'Color-shape conjunction', 'Shape popout', 'conjunction_bw', 'conjunction_color']
+labels = ['Serial', 'Color-shape conjunction', 'Shape popout', 'Conjunction (SO)', 'Conjunction (DO)']
 datatypes = ['miconi_serial', 'conjunction', 'miconi_popout', 'conjunction_bw', 'conjunction_color']
 lines = []
 

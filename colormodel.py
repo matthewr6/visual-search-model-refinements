@@ -6,12 +6,12 @@ import numpy as np
 import cPickle
 import time
 import math
-import matplotlib.pyplot as plt
-import scipy.ndimage.filters as snf
-from scipy.ndimage.filters import gaussian_filter
+# import matplotlib.pyplot as plt
+# import scipy.ndimage.filters as snf
+# from scipy.ndimage.filters import gaussian_filter
 import Model1 as model
-import scipy.misc as sm
-import matplotlib.image as mpimg
+# import scipy.misc as sm
+# import matplotlib.image as mpimg
 
 s1filters = model.buildS1filters()
 
@@ -217,7 +217,7 @@ def parse_filename(filename):
         'setsize': int(d[4])
     }
 
-def main(which, outname, scenepath):
+def main(which, outname, scenepath, objprots_only=False):
     if which == 'batch':
         if os.path.isfile('outdata/txtdata/{}.txt'.format(outname)):
             with open('outdata/txtdata/{}.txt'.format(outname), 'rb') as f:
@@ -226,9 +226,9 @@ def main(which, outname, scenepath):
             already_run = []
 
         paths = os.listdir('./scenes/{}'.format(scenepath))
-        with open('./prots/comboimgprots_v4.dat', 'rb') as f:
+        with open('./prots/comboimgprots.dat', 'rb') as f:
             imgprots = cPickle.load(f)
-        with open('./prots/comboobjprots_v4.dat', 'rb') as f:
+        with open('./prots/comboobjprots.dat', 'rb') as f:
             objprots = cPickle.load(f)
         with open('outdata/txtdata/{}.txt'.format(outname), 'ab') as f:
             for p in paths:
@@ -266,7 +266,7 @@ def main(which, outname, scenepath):
                 f.write('{} :: {} :: {} :: {}\n'.format(sceneinfo['idx'], sceneinfo['setsize'], i, found))
                 print '{} completed'.format(p)
 
-    if which == 'batch_color':
+    if which == 'batch_singleonly':
         if os.path.isfile('outdata/txtdata/{}.txt'.format(outname)):
             with open('outdata/txtdata/{}.txt'.format(outname), 'rb') as f:
                 already_run = ['{}-{}'.format(a.split(' :: ')[0], a.split(' :: ')[1]) for a in f.read().split('\n') if a]
@@ -274,9 +274,9 @@ def main(which, outname, scenepath):
             already_run = []
 
         paths = os.listdir('./scenes/{}'.format(scenepath))
-        with open('./prots/comboimgprots_color.dat', 'rb') as f:
+        with open('./prots/comboimgprots_singleonly.dat', 'rb') as f:
             imgprots = cPickle.load(f)
-        with open('./prots/comboobjprots_color.dat', 'rb') as f:
+        with open('./prots/comboobjprots_singleonly.dat', 'rb') as f:
             objprots = cPickle.load(f)
         with open('outdata/txtdata/{}.txt'.format(outname), 'ab') as f:
             for p in paths:
@@ -334,23 +334,27 @@ def main(which, outname, scenepath):
             cv2.imshow(d, do[d])
         cv2.waitKey(0)
 
-    if which == 'prots_bw':
-        with open('prots/imgprots.dat', 'rb') as f:
+    if which == 'prots_doubleonly':
+        if not objprots_only:
+            imgprots = buildImageProts(600, double_only=True)
+            with open('prots/comboimgprots_doubleonly.dat', 'wb') as f:
+                cPickle.dump(imgprots, f, protocol=-1)
+        with open('prots/comboimgprots_doubleonly.dat', 'rb') as f:
             imgprots = cPickle.load(f)
-        objprots = model.buildObjProts(s1filters, imgprots, resize=True, full=True)
-        with open('prots/comboobjprots_bw.dat', 'wb') as f:
+        objprots = buildObjProts(imgprots, double_only=True)
+        with open('prots/comboobjprots_doubleonly.dat', 'wb') as f:
             cPickle.dump(objprots, f, protocol=-1)
 
-    if which == 'batch_bw':
+    if which == 'batch_doubleonly':
         if os.path.isfile('outdata/txtdata/{}.txt'.format(outname)):
             with open('outdata/txtdata/{}.txt'.format(outname), 'rb') as f:
                 already_run = ['{}-{}'.format(a.split(' :: ')[0], a.split(' :: ')[1]) for a in f.read().split('\n') if a]
         else:
             already_run = []
         paths = os.listdir('./scenes/{}'.format(scenepath))
-        with open('prots/imgprots.dat', 'rb') as f:
+        with open('./prots/comboimgprots_doubleonly.dat', 'rb') as f:
             imgprots = cPickle.load(f)
-        with open('./prots/comboobjprots_bw.dat', 'rb') as f:
+        with open('./prots/comboobjprots_doubleonly.dat', 'rb') as f:
             objprots = cPickle.load(f)
         with open('outdata/txtdata/{}.txt'.format(outname), 'ab') as f:
             for p in paths:
@@ -360,9 +364,7 @@ def main(which, outname, scenepath):
                     continue
 
                 targetidx = sceneinfo['targetidx']
-                img = sm.imread('./scenes/{}/{}'.format(scenepath, p), mode='I')
-                S1outputs = model.runS1layer(img, s1filters)
-                C1outputs = model.runC1layer(S1outputs)
+                C1outputs = runS1C1('./scenes/{}/{}'.format(scenepath, p), double_only=True)
                 S2boutputs = model.runS2blayer(C1outputs, imgprots)
                 feedback = model.feedbackSignal(objprots, targetidx)
                 lipmap = model.topdownModulation(S2boutputs,feedback)
@@ -405,14 +407,15 @@ def main(which, outname, scenepath):
         with open('prots/comboobjprots_v4.dat', 'wb') as f:
             cPickle.dump(objprots, f, protocol=-1)
 
-    if which == 'prots_color':
-        imgprots = buildImageProts(600, single_only=True)
-        with open('prots/comboimgprots_color.dat', 'wb') as f:
-            cPickle.dump(imgprots, f, protocol=-1)
-        with open('prots/comboimgprots_color.dat', 'rb') as f:
+    if which == 'prots_singleonly':
+        if not objprots_only:
+            imgprots = buildImageProts(600, single_only=True)
+            with open('prots/comboimgprots_singleonly.dat', 'wb') as f:
+                cPickle.dump(imgprots, f, protocol=-1)
+        with open('prots/comboimgprots_singleonly.dat', 'rb') as f:
             imgprots = cPickle.load(f)
         objprots = buildObjProts(imgprots, single_only=True)
-        with open('prots/comboobjprots_color.dat', 'wb') as f:
+        with open('prots/comboobjprots_singleonly.dat', 'wb') as f:
             cPickle.dump(objprots, f, protocol=-1)
 
     if which == 'run':
@@ -466,25 +469,20 @@ def main(which, outname, scenepath):
         #     i += 1
         # plt.show()
 
-
-# run batch_bw vs batch on color popout - currently running.
-
-# run batch_color vs batch on shape popout to show it's notjust color deciding - second two tabs
-
-# done:
-# want to try and batch_color on conjunction also (batch_bw on conjunction is done already.)
+# adding squares as wellto set of circles
 
 if __name__ == '__main__':
-    modes = ['run', 'show', 'imgprots', 'objprots', 'batch', 'allprots', 'batch_bw', 'prots_bw', 'prots_color', 'batch_color']
+    modes = ['run', 'show', 'imgprots', 'objprots', 'batch', 'allprots', 'batch_doubleonly', 'prots_doubleonly', 'prots_singleonly', 'batch_singleonly']
 
-    which = 'batch'
-    outname = 'conjunctions_v4'
-    scenepath = 'conjunctions'
-    
-    assert which in modes
-    print which
-    if 'batch'in which:
-        print outname, scenepath
+    a = False
+    if a:
+        # main('objprots', '', '')
+        which = 'batch'
+        outname = 'singlevsboth'
+    else:
+        # main('prots_doubleonly', '', '', objprots_only=True)
+        which = 'batch_doubleonly'
+        outname = 'singlevsboth_doubleonly'
 
+    scenepath = 'bw'
     main(which, outname, scenepath)
-    # main('batch', outname, scenepath)

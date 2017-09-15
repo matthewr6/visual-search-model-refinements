@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 # sns.set(style="white")
 
-datatypes = ['conjunctions', 'conjunctions_v2', 'conjunctions_v3', 'miconi_popout', 'miconi_serial', 'conjunctions_v4']
+datatypes = ['conjunctions', 'conjunctions_doubleonly', 'conjunctions_singleonly', 'singlevsboth', 'singlevsboth_singleonly', 'singlevsboth_doubleonly']
 lines = []
 
 for datatype in datatypes:
@@ -34,4 +34,4 @@ plt.ylim(bottom=0, top=14)
 plt.xticks([3,6,12,18])
 plt.xlabel('Set size')
 plt.ylabel('Fixation count')
-plt.show()
+plt.savefig('regressioncompare.png')
