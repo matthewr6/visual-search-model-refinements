@@ -12,24 +12,22 @@ import ModelOptions1 as opt
 import json
 import os
 
-
-reload(opt)
-reload(Model1)
+import colormodel
 
 def save_priomap(prio, name):
     pmap = np.exp(np.exp(np.exp(Model1.scale(prio))))
     # plt.imshow(gaussian_filter(pmap, sigma=3), cmap='hot')
     plt.imsave('{}.png'.format(name), gaussian_filter(pmap, sigma=3), format='png', cmap='hot')
 
-with open('sample_priomap.dat', 'rb') as f:
-    priorityMap = cPickle.load(f)
+# with open('sample_priomap.dat', 'rb') as f:
+#     priorityMap = cPickle.load(f)
 
 
-# with open('sample_unmodified_lip.dat', 'rb') as f:
-#     lipmap = cPickle.load(f)
+with open('sample_lipmaps.dat', 'rb') as f:
+    lipmaps = cPickle.load(f)
 
-# priorityMap = Model1.priorityMap(lipmap,[256,256])
-# # print np.mean(priorityMap)
+priorityMap, _ = colormodel.comboPriorityMap(lipmaps,[256,256])
+# print np.mean(priorityMap)
 
 # save_priomap(priorityMap, 'exhat_color')
 

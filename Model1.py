@@ -135,7 +135,10 @@ def runS1layer(imgin, s1f):
 			fin = np.abs(tmp[RFSIZE/2:-RFSIZE/2, RFSIZE/2:-RFSIZE/2])
 			fin = tmp[::stride,::stride] #perform striding according to page 5 of Miconi et al (might be a more efficient way to do this)
 			
+			# print np.max(fin)
+			# print np.min(fin)
 			# assert np.max(fin) < 1
+			# assert np.min(fin) > -1
 			#print 'Output shape on S1 filter: ', fin.shape
 			outputsAllOrient.append(fin)
 		# We stack together the orientation maps of all 4 orientations into one single
@@ -438,7 +441,6 @@ def imgDynamicRange(inmap):
 	return [normalized, minVal,maxVal]
 
 
-# todo
 def topdownModulation(S2boutputs,feedback,norm=True): #LIP MAP
 	#s2boutputs dimension: numScales x n x n x numProts
 	lipMap = []
@@ -446,7 +448,6 @@ def topdownModulation(S2boutputs,feedback,norm=True): #LIP MAP
 		S2bsum = np.sum(S2boutputs[scale], axis = 2)
 		S2bsum = S2bsum[:,:,np.newaxis]
 		# print S2bsum.shape
-		norm = True
 		if norm:
 			lip = (S2boutputs[scale] * feedback)/(S2bsum + opt.STRNORMLIP)
 		else:

@@ -6,14 +6,20 @@ import numpy as np
 import cPickle
 import time
 import math
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 # import scipy.ndimage.filters as snf
-# from scipy.ndimage.filters import gaussian_filter
+from scipy.ndimage.filters import gaussian_filter
 import Model1 as model
 # import scipy.misc as sm
 # import matplotlib.image as mpimg
 
 s1filters = model.buildS1filters()
+
+def runS2blayer(C1outputs, prots):
+    final = {}
+    for k in C1outputs:
+        final[k] = model.runS2blayer(C1outputs[k], prots[k])
+    return final
 
 def parse_to_show(img, shape):
     return cv2.resize(model.imgDynamicRange(np.mean(img, axis=2))[0], shape[:-1])
@@ -41,7 +47,11 @@ objdir = './images/colorobjs'
 def buildImageProts(numProts, single_only=False, double_only=False): 
     print 'Building ', numProts, 'protoypes from natural images'
     imgfiles = os.listdir(imgdir)
-    prots = []
+    prots = {
+        'bw': [],
+        'do': [],
+        'so': [],
+    }
     for n in range(numProts):
         selectedImg = random.choice(range(len(imgfiles)))
         print '----------------------------------------------------'
@@ -52,8 +62,10 @@ def buildImageProts(numProts, single_only=False, double_only=False):
         if(imgfile == '._.DS_Store' or imgfile == '.DS_Store'):
             selectedImg = random.choice(range(len(imgfiles)))
             imgfile = imgfiles[selectedImg]
+        # the way I'm doing it is inefficient but works for our purposes.
         c1out = runS1C1(imgdir+'/'+imgfile, single_only=single_only, double_only=double_only)
-        prots.append(model.extract3DPatch(c1out, nbkeptweights=300)) # 100 x (12/4) = 300
+        for p in c1out:
+            prots[p].append(model.extract3DPatch(c1out[p], nbkeptweights=100))
     return prots
 
 def buildObjProts(imgProts, resize=True, single_only=False, double_only=False): #computing C2b
@@ -82,12 +94,13 @@ def buildObjProts(imgProts, resize=True, single_only=False, double_only=False): 
         t = time.time()
         C1outputs = runS1C1(objdir +'/'+imgfile, img, img_2=img_2, single_only=single_only, double_only=double_only)
 
-        S2boutputs = model.runS2blayer(C1outputs, imgProts)
+        S2boutputs = runS2blayer(C1outputs, imgProts) # todo I'm right here.
         #compute max for a given scale
-        max_acts = [np.max(scale.reshape(scale.shape[0]*scale.shape[1],scale.shape[2]),axis=0) for scale in S2boutputs]
-        C2boutputs = np.max(np.asarray(max_acts),axis=0) #glabal maximums
-        #C2boutputs = runC1layer(S2boutputs)
-        prots[pnum] = C2boutputs
+        maxes = {}
+        for k in S2boutputs: #s2boutputs is 12 x 3(dict) xn x n x 600
+            maxes[k] = [np.max(scale.reshape(scale.shape[0]*scale.shape[1],scale.shape[2]),axis=0) for scale in S2boutputs[k]]
+            maxes[k] = np.max(np.asarray(maxes[k]),axis=0)
+        prots[pnum] = maxes
         timeF = (time.time()-t)
         print "Time elapsed: ", timeF, " Estimated time of completion: ", timeF*(len(imgfiles)-(n+1))
     return prots
@@ -130,12 +143,12 @@ def single_opponents(cielab_img):
         # so[order[i][::-1]] = half_rectify(255 - cielab_img[:,:,i+1])
     return so
 
-def double_opponents(so, img):
+def double_opponents(so):#, img):
     do = {}
     order = ['rg', 'yb'] # 'bw' for v1
     for o in order:
         do[o] = cv2.absdiff(so[o] , 255 - so[o])
-    do['bw'] = img
+    # do['bw'] = img
     return do
 
 def bound_array_of_mats(arr):
@@ -155,8 +168,46 @@ def bound_dict_of_mats(d):
         m2 = min(m2, a2)
     return (m1, m2)
 
+def transform_c2b(c2b):
+    ret = {}
+    for k in c2b[0].keys():
+        ap = []
+        for i in c2b:
+            ap.append(i[k])
+        ret[k] = ap
+    return ret
 
-# try having so be only rg/gr/yb/by and do being only rg/by/bw
+
+def feedbackSignals(objprots, targetIndx):
+    feedback = {}
+    c2b = transform_c2b(objprots)
+    for k in objprots[0].keys():
+        C2bavg = np.mean(c2b[k],axis=0)
+        C2bavg[C2bavg == 0] = float('inf')
+        feedback[k] = c2b[k][targetIndx]/C2bavg
+
+    max_feedback, min_feedback = bound_dict_of_mats(feedback)
+    for k in feedback:
+        feedback[k] = feedback[k] - min_feedback
+        feedback[k] = feedback[k] / max_feedback
+        # feedback[k] += 1.0
+    return feedback
+
+def topdownModulation(s2boutputs, feedback):
+    mapdict = {}
+    for k in s2boutputs:
+        assert k in feedback
+        mapdict[k] = model.topdownModulation(s2boutputs[k], feedback[k], norm=k != 'so')
+    return mapdict
+
+def comboPriorityMap(lipmaps, osize):
+    final = np.zeros(osize) + 1
+    individuals = {}
+    for k in lipmaps:
+        individuals[k] = model.priorityMap(lipmaps[k], osize)
+        final *= individuals[k]
+    return final, individuals
+
 def runS1C1(imgpath, img=None, single_only=False, double_only=False, img_2=None):
     print single_only, double_only
     if img is None:
@@ -166,13 +217,15 @@ def runS1C1(imgpath, img=None, single_only=False, double_only=False, img_2=None)
         do_bw = cv2.imread(imgpath, 0)
     else:
         do_bw = img_2
-    do = double_opponents(so, do_bw) # three, also run filters on these so 3x4=12
+    do = double_opponents(so)#, do_bw) # three, also run filters on these so 3x4=12
     do_filtered = {}
     for d in do:
         do_filtered[d] = model.runS1layer(do[d], s1filters)
 
+    bw = model.runS1layer(do_bw, s1filters)
+
     if not double_only:
-        sizes = [i.shape[:2] for i in do_filtered['bw']] # why do I have to reverse? unsure
+        sizes = [i.shape[:2] for i in bw]
         so_resized = {}
         for s in so:
             so_resized[s] = [cv2.resize(so[s], size[::-1]) for size in sizes] # each is 12 x n x n
@@ -180,15 +233,27 @@ def runS1C1(imgpath, img=None, single_only=False, double_only=False, img_2=None)
 
     do_flattened = transform_c1out([do_filtered[d] for d in do_filtered]) # ends being 12 x n x n x 12
 
-    s1out = []
+    s1out = {
+        'bw':[],
+        'so':[],
+        'do':[]
+    }
+    #we divide by 255.0 to normalize to (1.5, -1.5)
+    def so_parse(s):
+        s = (s/127.5) - 1.0
+        return s * 1.5
     for i in range(12):
         if single_only:
-            s1out.append(so_flattened[i]/255.0)
+            s1out['so'].append(so_parse(so_flattened[i]))
         elif double_only:
-            s1out.append(do_flattened[i])
+            s1out['so'].append(do_flattened[i]) # should this include bw
         else:
-            s1out.append(np.dstack((do_flattened[i], so_flattened[i])))
-    c1out = model.runC1layer(s1out)
+            s1out['so'].append(so_parse(so_flattened[i]))
+            s1out['do'].append(do_flattened[i])
+            s1out['bw'].append(bw[i])
+    c1out = {}
+    for k in s1out:
+        c1out[k] = model.runC1layer(s1out[k])
     return c1out
 
 box_diam = 256/5.0
@@ -226,9 +291,9 @@ def main(which, outname, scenepath, objprots_only=False):
             already_run = []
 
         paths = os.listdir('./scenes/{}'.format(scenepath))
-        with open('./prots/comboimgprots.dat', 'rb') as f:
+        with open('./prots/comboimgprots_separatefeatures.dat', 'rb') as f:
             imgprots = cPickle.load(f)
-        with open('./prots/comboobjprots.dat', 'rb') as f:
+        with open('./prots/comboobjprots_separatefeatures.dat', 'rb') as f:
             objprots = cPickle.load(f)
         with open('outdata/txtdata/{}.txt'.format(outname), 'ab') as f:
             for p in paths:
@@ -242,14 +307,13 @@ def main(which, outname, scenepath, objprots_only=False):
 
                 c1out = runS1C1('./scenes/{}/{}'.format(scenepath, p))
                 print 'c1out done'
-                s2bout = model.runS2blayer(c1out, imgprots)
+                s2bout = runS2blayer(c1out, imgprots)
                 print 's2b done'
-                feedback = model.feedbackSignal(objprots, sceneinfo['targetidx'])
-                protidx = np.argmax(feedback)
+                feedback = feedbackSignals(objprots, sceneinfo['targetidx'])
                 print 'feedback done'
-                lipmap = model.topdownModulation(s2bout, feedback)
+                lipmaps = topdownModulation(s2bout, feedback)
                 print 'lipmap done'
-                priorityMap = model.priorityMap(lipmap, [256,256])
+                priorityMap, _ = comboPriorityMap(lipmaps, [256,256])
                 print priorityMap.shape
 
                 i = 0
@@ -322,17 +386,21 @@ def main(which, outname, scenepath, objprots_only=False):
         #     cv2.imshow(str(i), img[:,:,i])
         # cv2.waitKey(0)
         # t = time.time()
-        runS1C1(sys.argv[1])
+        r = runS1C1(sys.argv[1])
+        # for k in r:
+        #     print k
+        #     for item in r[k]:
+        #         print np.max(item), np.min(item)
         # print time.time() - t
-        so = single_opponents(img)
-        for d in so:
-            cv2.imshow(d, so[d])
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-        do = double_opponents(so, cv2.imread(sys.argv[1], 0))
-        for d in do:
-            cv2.imshow(d, do[d])
-        cv2.waitKey(0)
+        # so = single_opponents(img)
+        # for d in so:
+        #     cv2.imshow(d, so[d])
+        # cv2.waitKey(0)
+        # cv2.destroyAllWindows()
+        # do = double_opponents(so, cv2.imread(sys.argv[1], 0))
+        # for d in do:
+        #     cv2.imshow(d, do[d])
+        # cv2.waitKey(0)
 
     if which == 'prots_doubleonly':
         if not objprots_only:
@@ -391,20 +459,20 @@ def main(which, outname, scenepath, objprots_only=False):
             cPickle.dump(imgprots, f, protocol=-1)
 
     if which == 'objprots':
-        with open('prots/comboimgprots.dat', 'rb') as f:
+        with open('prots/comboimgprots_separatefeatures.dat', 'rb') as f:
             imgprots = cPickle.load(f)
         objprots = buildObjProts(imgprots)
-        with open('prots/comboobjprots.dat', 'wb') as f:
+        with open('prots/comboobjprots_separatefeatures.dat', 'wb') as f:
             cPickle.dump(objprots, f, protocol=-1)
 
     if which == 'allprots':
         imgprots = buildImageProts(600)
-        with open('prots/comboimgprots_v4.dat', 'wb') as f:
+        with open('prots/comboimgprots_separatefeatures.dat', 'wb') as f:
             cPickle.dump(imgprots, f, protocol=-1)
-        with open('prots/comboimgprots_v4.dat', 'rb') as f:
+        with open('prots/comboimgprots_separatefeatures.dat', 'rb') as f:
             imgprots = cPickle.load(f)
         objprots = buildObjProts(imgprots)
-        with open('prots/comboobjprots_v4.dat', 'wb') as f:
+        with open('prots/comboobjprots_separatefeatures.dat', 'wb') as f:
             cPickle.dump(objprots, f, protocol=-1)
 
     if which == 'prots_singleonly':
@@ -420,49 +488,64 @@ def main(which, outname, scenepath, objprots_only=False):
 
     if which == 'run':
         targetidx = int(sys.argv[2])
-        with open('./prots/comboimgprots.dat', 'rb') as f:
-            imgprots = cPickle.load(f)
-        with open('./prots/comboobjprots.dat', 'rb') as f:
+        with open('./prots/comboobjprots_separatefeatures.dat', 'rb') as f:
             objprots = cPickle.load(f)
-        c1out = runS1C1(sys.argv[1])
-        print 'c1out done'
-        s2bout = model.runS2blayer(c1out, imgprots)
-        print 's2b done'
-        feedback = model.feedbackSignal(objprots, targetidx)
-        protidx = np.argmax(feedback)
-        print 'feedback done'
-        lipmap = model.topdownModulation(s2bout, feedback)
-        print 'lipmap done'
-        priorityMap = model.priorityMap(lipmap, [256,256])
+        feedback = feedbackSignals(objprots, targetidx)
+
+        # with open('./prots/comboimgprots_separatefeatures.dat', 'rb') as f:
+        #     imgprots = cPickle.load(f)
+        # # protidx = np.argmax(feedback)
+        # print 'feedback done'
+        # c1out = runS1C1(sys.argv[1])
+        # print 'c1out done'
+        # s2bout = runS2blayer(c1out, imgprots)
+        # print 's2b done'
+        # lipmaps = topdownModulation(s2bout, feedback)
+        # print 'lipmap done'
+
+        with open('sample_lipmaps.dat', 'rb') as f:
+            lipmaps = cPickle.load(f)
+
+        priorityMap, individualPriorityMaps = comboPriorityMap(lipmaps, [256,256])
         print priorityMap.shape
 
-        with open('sample_priomap.dat', 'wb') as f:
-            cPickle.dump(priorityMap, f, protocol=-1)
+        with open('sample_lipmaps.dat', 'wb') as f:
+            cPickle.dump(lipmaps, f, protocol=-1)
 
-        # fix, ax = plt.subplots(ncols=2)
-        # plt.gray()
-        # pmap = np.exp(np.exp(normalize(priorityMap)))
-        # ax[0].imshow(gaussian_filter(pmap, sigma=3))
-        # ax[1].imshow(gaussian_filter(np.exp(pmap), sigma=3))
-        # # plt.show()
+        fix, ax = plt.subplots(ncols=2, nrows=len(individualPriorityMaps.keys()) + 1)
+        plt.gray()
+        pmap = np.exp(np.exp(normalize(priorityMap)))
+        ax[0,0].imshow(gaussian_filter(pmap, sigma=3))
+        ax[0,1].imshow(gaussian_filter(np.exp(pmap), sigma=3))
+        i = 1
+        for k in individualPriorityMaps:
+            print k
+            print np.max(individualPriorityMaps[k])
+            pmap = np.exp(np.exp(normalize(individualPriorityMaps[k])))
+            ax[i,0].imshow(gaussian_filter(pmap, sigma=3))
+            ax[i,1].imshow(gaussian_filter(np.exp(pmap), sigma=3))
+            i += 1
+        plt.show()
 
         # fig, ax = plt.subplots(nrows=12, ncols=3)
         # plt.gray()
         # i = 0
-        # for scale in c1out:
+        # inspectwhich = 'bw'
+        # protidx = np.argmax(feedback[inspectwhich])
+        # for scale in c1out[inspectwhich]:
         #     cif, minV, maxV = model.imgDynamicRange(np.mean(scale, axis = 2))
         #     ax[i,0].imshow(cif)
         #     i += 1
 
         # i = 0
-        # for scale in s2bout:
+        # for scale in s2bout[inspectwhich]:
         #     #s2b, minV, maxV = model.imgDynamicRange(np.mean(scale, axis = 2))
         #     s2b, minV, maxV = model.imgDynamicRange(scale[:,:,protidx])
         #     ax[i,1].imshow(s2b)
         #     i += 1
 
         # i = 0
-        # for scale in lipmap:
+        # for scale in lipmaps[inspectwhich]:
         #     #lm, minV, maxV = model.imgDynamicRange(np.mean(scale, axis = 2))
         #     lm, minV, maxV = model.imgDynamicRange(scale[:,:,protidx])  
         #     ax[i,2].imshow(lm)
@@ -484,5 +567,7 @@ if __name__ == '__main__':
         which = 'batch_doubleonly'
         outname = 'singlevsboth_doubleonly'
 
-    scenepath = 'bw'
+    scenepath = 'conjunctions'
+    which = 'batch'
+    outname = 'conjunction_separatefeatures'
     main(which, outname, scenepath)
