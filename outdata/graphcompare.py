@@ -6,32 +6,59 @@ import matplotlib.pyplot as plt
 
 # sns.set(style="white")
 
-datatypes = ['conjunctions', 'conjunctions_doubleonly', 'conjunctions_singleonly', 'singlevsboth', 'singlevsboth_singleonly', 'singlevsboth_doubleonly']
-lines = []
+global_datatypes = [
+    ['miconi_serial', 'miconi_popout', 'conjunctions'],
+    ['bw', 'bw_so', 'bw_do'],
+    ['colorpopout', 'colorpopout_bw'],
+    ['colorpopout', 'bw', 'miconi_popout'],
+    ['conjunctions', 'conjunctions_bw', 'conjunctions_so','conjunctions_do'],
+    # ['multiconjunction', 'multiconjunction_bw', 'multiconjunction_so','multiconjunction_do'],
+    ['conjunctions', 'conjunctions_noscale', 'bw', 'bw_noscale', 'colorpopout', 'colorpopout_noscale'],
+    ['conjunctions', 'conjunctions_nofscale', 'bw', 'bw_nofscale', 'colorpopout', 'colorpopout_nofscale'],
+]
+titles = ['regressioncompare', 'bw', 'colorpopout', 'originalvsnew', 'conjunctions','noscale','nofscale']
+captions = [
+    ['Miconi Serial', 'Miconi Popout', 'Conjunctions'],
+    ['Full', 'Single-opponent', 'Double-opponent'],
+    ['Full', 'Black-and-white'],
+    ['Color Popout', 'Shape Popout', 'Miconi Popout'],
+    ['Conjunctions', 'Black-and-white', 'Single-opponent', 'Double-opponent'],
+    # ['multiconjunction', 'multiconjunction_bw', 'multiconjunction_so','multiconjunction_do'],
+    ['Conjunctions', 'Conjunctions (no feature scaling)', 'Shape Popout', 'Shape Popout (no feature scaling)', 'Color Popout', 'Color Popout (no feature scaling)'],
+    ['Conjunctions', 'Conjunctions (no exp. scaling)', 'Shape Popout', 'Shape Popout (no exp. scaling)', 'Color Popout', 'Color Popout (no exp. scaling)'],
+]
+assert len(titles) == len(global_datatypes)
+assert len(captions) == len(titles)
+n = len(titles)
 
-for datatype in datatypes:
+for i in range(n):
+    datatypes = global_datatypes[i]
+    lines = []
 
-    sizes = ['3', '6', '12', '18']
-    linebounds = [int(a) for a in sizes]
+    for datatype in datatypes:
 
-    with open('jsondata/{}.json'.format(datatype), 'rb') as f:
-        data = json.load(f)
+        sizes = ['3', '6', '12', '18']
+        linebounds = [int(a) for a in sizes]
 
-    points = []
-    for size in sizes:
-        for point in data[size]:
-            points.append((int(size), point))
+        with open('jsondata/{}.json'.format(datatype), 'rb') as f:
+            data = json.load(f)
 
-    unzipped = zip(*points)
-    m, b = np.polyfit(unzipped[0], unzipped[1], 1)
-    l = plt.plot(linebounds, m*np.array(linebounds) + b, linewidth=2)#, linestyle=lstyles[datatype])
-    lines.append(l[0])
+        points = []
+        for size in sizes:
+            for point in data[size]:
+                points.append((int(size), point))
 
-plt.suptitle('Model Performance Regression')
-legend = plt.legend(lines, datatypes, loc=2)
-plt.xlim(left=3, right=18)
-plt.ylim(bottom=0, top=14)
-plt.xticks([3,6,12,18])
-plt.xlabel('Set size')
-plt.ylabel('Fixation count')
-plt.savefig('regressioncompare.png')
+        unzipped = zip(*points)
+        m, b = np.polyfit(unzipped[0], unzipped[1], 1)
+        l = plt.plot(linebounds, m*np.array(linebounds) + b, linewidth=2)#, linestyle=lstyles[datatype])
+        lines.append(l[0])
+
+    plt.suptitle('Model Performance Regression')
+    legend = plt.legend(lines, captions[i], loc=2)
+    plt.xlim(left=3, right=18)
+    plt.ylim(bottom=0, top=14)
+    plt.xticks([3,6,12,18])
+    plt.xlabel('Set size')
+    plt.ylabel('Fixation count')
+    plt.savefig('graphs/{}.png'.format(titles[i]))
+    plt.close()

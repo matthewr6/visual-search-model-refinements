@@ -4,9 +4,9 @@ from scipy import stats
 
 # test that first should be smaller than second
 pairs = [
-    ('conjunctions', 'conjunctions_singleonly'),
-    ('conjunctions', 'conjunctions_doubleonly'),
-    ('singlevsboth', 'singlevsboth_singleonly'),
+    ('conjunctions', 'conjunctions_bw'),
+    ('conjunctions', 'conjunctions_so'),
+    ('conjunctions', 'conjunctions_do'),
 ]
 
 def zscore(m1, se1, m2, se2):
@@ -23,6 +23,7 @@ for pair in pairs:
         with open('jsondata/{}.json'.format(d), 'rb') as f:
             data = json.load(f)
         statdata[d] = data
+    print pair
     for d in statdata[pair[0]]:
         print stats.ttest_ind(statdata[pair[0]][d], statdata[pair[1]][d])[1]
-    print pair
+    print ''
