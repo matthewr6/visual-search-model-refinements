@@ -141,13 +141,15 @@ def single_opponents(cielab_img):
         so[order[i][::-1]] = 255 - cielab_img[:,:,i+1] # switch for v2/v3
         # so[order[i]] = half_rectify(cielab_img[:,:,i+1])
         # so[order[i][::-1]] = half_rectify(255 - cielab_img[:,:,i+1])
+    so['in'] = cielab_img[:,:,0] # in single_opponents because it's part of the definition of color
     return so
 
 def double_opponents(so):#, img):
     do = {}
     order = ['rg', 'yb'] # 'bw' for v1
     for o in order:
-        do[o] = cv2.absdiff(so[o] , 255 - so[o])
+        # do[o] = cv2.absdiff(so[o] , 255 - so[o])
+        do[o] = so[o] # black w/ white line is same as white w/black line so choice rg vs gr is arbitrary - this fulfills center vs surround
     # do['bw'] = img
     return do
 
@@ -244,11 +246,11 @@ def runS1C1(imgpath, img=None, single_only=False, double_only=False, bw_only=Fal
     print single_only, double_only
     if img is None:
         img = cv2.cvtColor(cv2.imread(imgpath), cv2.COLOR_RGB2Lab)
-    so = single_opponents(img) # six
     if img_2 is None:
         do_bw = cv2.imread(imgpath, 0)
     else:
         do_bw = img_2
+    so = single_opponents(img) # six
     do = double_opponents(so)#, do_bw) # three, also run filters on these so 3x4=12
     do_filtered = {}
     for d in do:
@@ -324,9 +326,9 @@ def main(which, outname=None, scenepath=None, feature_mode='both', prio_scaling=
             already_run = []
 
         paths = os.listdir('./scenes/{}'.format(scenepath))
-        with open('./prots/comboimgprots_separatefeatures.dat', 'rb') as f:
+        with open('./prots/comboimgprots_separatefeatures_intensityanddoubles.dat', 'rb') as f:
             imgprots = cPickle.load(f)
-        with open('./prots/comboobjprots_separatefeatures.dat', 'rb') as f:
+        with open('./prots/comboobjprots_separatefeatures_intensityanddoubles.dat', 'rb') as f:
             objprots = cPickle.load(f)
         with open('outdata/txtdata/{}.txt'.format(outname), 'ab') as f:
             for p in paths:
@@ -396,29 +398,29 @@ def main(which, outname=None, scenepath=None, feature_mode='both', prio_scaling=
             cPickle.dump(imgprots, f, protocol=-1)
 
     if which == 'objprots':
-        with open('prots/comboimgprots_separatefeatures.dat', 'rb') as f:
+        with open('prots/comboimgprots_separatefeatures_intensityanddoubles.dat', 'rb') as f:
             imgprots = cPickle.load(f)
         objprots = buildObjProts(imgprots)
-        with open('prots/comboobjprots_separatefeatures.dat', 'wb') as f:
+        with open('prots/comboobjprots_separatefeatures_intensityanddoubles.dat', 'wb') as f:
             cPickle.dump(objprots, f, protocol=-1)
 
     if which == 'allprots':
         imgprots = buildImageProts(600)
-        with open('prots/comboimgprots_separatefeatures.dat', 'wb') as f:
+        with open('prots/comboimgprots_separatefeatures_intensityanddoubles.dat', 'wb') as f:
             cPickle.dump(imgprots, f, protocol=-1)
-        with open('prots/comboimgprots_separatefeatures.dat', 'rb') as f:
+        with open('prots/comboimgprots_separatefeatures_intensityanddoubles.dat', 'rb') as f:
             imgprots = cPickle.load(f)
         objprots = buildObjProts(imgprots)
-        with open('prots/comboobjprots_separatefeatures.dat', 'wb') as f:
+        with open('prots/comboobjprots_separatefeatures_intensityanddoubles.dat', 'wb') as f:
             cPickle.dump(objprots, f, protocol=-1)
 
     if which == 'run':
         targetidx = int(sys.argv[2])
-        with open('./prots/comboobjprots_separatefeatures.dat', 'rb') as f:
+        with open('./prots/comboobjprots_separatefeatures_intensityanddoubles.dat', 'rb') as f:
             objprots = cPickle.load(f)
         feedback = feedbackSignals(objprots, targetidx)
 
-        with open('./prots/comboimgprots_separatefeatures.dat', 'rb') as f:
+        with open('./prots/comboimgprots_separatefeatures_intensityanddoubles.dat', 'rb') as f:
             imgprots = cPickle.load(f)
         # protidx = np.argmax(feedback)
         print 'feedback done'
@@ -493,14 +495,15 @@ if __name__ == '__main__':
         scenetypeidx = int(sys.argv[1])
         modetypeidx = int(sys.argv[2])
         prio_scaling = True
-        feedback_scaling = False
+        feedback_scaling = True
 
+        # 1-3 and then 1-4
         scenepath = ['bw', 'colorpopout', 'conjunctions', 'shapepopout', 'multiconjunction'][scenetypeidx-1]
         feature_mode = ['bw', 'so', 'do', 'both'][modetypeidx-1]
 
-        outname = scenepath
+        outname = 'intensityanddoubles/{}'.format(scenepath)
         if feature_mode != 'both':
-            outname = '{}_{}'.format(scenepath, feature_mode)
+            outname = '{}_{}'.format(outname, feature_mode)
         if not prio_scaling:
             outname = '{}_noscale'.format(outname)
         if not feedback_scaling:
@@ -509,3 +512,16 @@ if __name__ == '__main__':
         main(which, outname=outname, scenepath=scenepath, feature_mode=feature_mode, prio_scaling=prio_scaling, feedback_scaling=feedback_scaling)
     else:
         main(which)
+
+# bw (1): 1,2,3,4
+
+
+
+
+
+
+# colorpopout (2): 1,2,3
+
+# conjunctions (3): 1,2,3,4
+
+#colorpopout_so (2 2) and bw (1 4) not done.

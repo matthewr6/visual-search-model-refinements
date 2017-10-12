@@ -11,9 +11,15 @@ basenames = ['bw', 'bw_do', 'bw_so', 'colorpopout', 'colorpopout_bw',
             'conjunctions_noscale', 'colorpopout_noscale', 'bw_nofscale',
             'conjunctions_nofscale', 'colorpopout_nofscale']
 
+basenames = ['intensityanddoubles/conjunctions', 'intensityanddoubles/conjunctions_bw', 'intensityanddoubles/conjunctions_so', 'intensityanddoubles/conjunctions_do']
+
+basenames = ['bw', 'bw_do', 'bw_so', 'bw_bw', 'colorpopout', 'colorpopout_bw',
+             'colorpopout_do', 'conjunctions_bw', 'conjunctions_so',
+             'conjunctions_do']
+
 for basename in basenames:
 
-    with open('txtdata/{}.txt'.format(basename), 'rb') as f:
+    with open('txtdata/intensityanddoubles/{}.txt'.format(basename), 'rb') as f:
         o_data = f.read().split('\n')[:-1]
 
     dict_data = {}
@@ -30,7 +36,7 @@ for basename in basenames:
         dict_data[setsize].append(fixations)
         list_data.append(int(row[2]))
 
-    with open('jsondata/{}.json'.format(basename), 'wb') as f:
+    with open('jsondata/intensityanddoubles/{}.json'.format(basename), 'wb') as f:
         json.dump(dict_data, f, indent=4)
         # json.dump(list_data, f, indent=4)
 

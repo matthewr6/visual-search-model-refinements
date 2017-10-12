@@ -8,24 +8,26 @@ import matplotlib.pyplot as plt
 
 global_datatypes = [
     ['miconi_serial', 'miconi_popout', 'conjunctions'],
-    ['bw', 'bw_so', 'bw_do'],
+    ['bw', 'bw_so', 'bw_do', 'bw_bw'],
     ['colorpopout', 'colorpopout_bw'],
     ['colorpopout', 'bw', 'miconi_popout'],
     ['conjunctions', 'conjunctions_bw', 'conjunctions_so','conjunctions_do'],
     # ['multiconjunction', 'multiconjunction_bw', 'multiconjunction_so','multiconjunction_do'],
-    ['conjunctions', 'conjunctions_noscale', 'bw', 'bw_noscale', 'colorpopout', 'colorpopout_noscale'],
-    ['conjunctions', 'conjunctions_nofscale', 'bw', 'bw_nofscale', 'colorpopout', 'colorpopout_nofscale'],
+    # ['conjunctions', 'conjunctions_noscale', 'bw', 'bw_noscale', 'colorpopout', 'colorpopout_noscale'],
+    # ['conjunctions', 'conjunctions_nofscale', 'bw', 'bw_nofscale', 'colorpopout', 'colorpopout_nofscale'],
+    # ['intensityanddoubles/conjunctions', 'intensityanddoubles/conjunctions_bw', 'intensityanddoubles/conjunctions_so','intensityanddoubles/conjunctions_do'],
 ]
-titles = ['regressioncompare', 'bw', 'colorpopout', 'originalvsnew', 'conjunctions','noscale','nofscale']
+titles = ['regressioncompare', 'bw', 'colorpopout', 'originalvsnew', 'conjunctions']#,'noscale','nofscale']
 captions = [
     ['Miconi Serial', 'Miconi Popout', 'Conjunctions'],
-    ['Full', 'Single-opponent', 'Double-opponent'],
+    ['Full', 'Single-opponent', 'Double-opponent', 'bw'],
     ['Full', 'Black-and-white'],
     ['Color Popout', 'Shape Popout', 'Miconi Popout'],
     ['Conjunctions', 'Black-and-white', 'Single-opponent', 'Double-opponent'],
     # ['multiconjunction', 'multiconjunction_bw', 'multiconjunction_so','multiconjunction_do'],
-    ['Conjunctions', 'Conjunctions (no feature scaling)', 'Shape Popout', 'Shape Popout (no feature scaling)', 'Color Popout', 'Color Popout (no feature scaling)'],
-    ['Conjunctions', 'Conjunctions (no exp. scaling)', 'Shape Popout', 'Shape Popout (no exp. scaling)', 'Color Popout', 'Color Popout (no exp. scaling)'],
+    # ['Conjunctions', 'Conjunctions (no feature scaling)', 'Shape Popout', 'Shape Popout (no feature scaling)', 'Color Popout', 'Color Popout (no feature scaling)'],
+    # ['Conjunctions', 'Conjunctions (no exp. scaling)', 'Shape Popout', 'Shape Popout (no exp. scaling)', 'Color Popout', 'Color Popout (no exp. scaling)'],
+    # ['Conjunctions', 'Black-and-white', 'Single-opponent', 'Double-opponent'],
 ]
 assert len(titles) == len(global_datatypes)
 assert len(captions) == len(titles)
@@ -40,7 +42,7 @@ for i in range(n):
         sizes = ['3', '6', '12', '18']
         linebounds = [int(a) for a in sizes]
 
-        with open('jsondata/{}.json'.format(datatype), 'rb') as f:
+        with open('jsondata/intensityanddoubles/{}.json'.format(datatype), 'rb') as f:
             data = json.load(f)
 
         points = []
@@ -60,5 +62,5 @@ for i in range(n):
     plt.xticks([3,6,12,18])
     plt.xlabel('Set size')
     plt.ylabel('Fixation count')
-    plt.savefig('graphs/{}.png'.format(titles[i]))
+    plt.savefig('graphs/intensityanddoubles/{}.png'.format(titles[i]))
     plt.close()
