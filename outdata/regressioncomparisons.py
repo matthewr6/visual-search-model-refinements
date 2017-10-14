@@ -17,8 +17,8 @@ pairs = [
     # check colorpopout
     [],
     ('colorpopout', 'colorpopout_bw'),
-    # ('colorpopout', 'colorpopout_do'),
-    # ('colorpopout_bw', 'colorpopout_do'),
+    ('colorpopout', 'colorpopout_do'),
+    ('colorpopout_bw', 'colorpopout_do'),
 
     # conjunctions
     [],

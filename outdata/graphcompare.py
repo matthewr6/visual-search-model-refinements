@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 
 global_datatypes = [
     ['miconi_serial', 'miconi_popout', 'conjunctions'],
-    ['bw', 'bw_so', 'bw_do', 'bw_bw'],
-    ['colorpopout', 'colorpopout_bw'],
+    ['bw', 'bw_so', 'bw_do'],
+    ['colorpopout', 'colorpopout_bw', 'colorpopout_do'],
     ['colorpopout', 'bw', 'miconi_popout'],
     ['conjunctions', 'conjunctions_bw', 'conjunctions_so','conjunctions_do'],
     # ['multiconjunction', 'multiconjunction_bw', 'multiconjunction_so','multiconjunction_do'],
@@ -20,8 +20,8 @@ global_datatypes = [
 titles = ['regressioncompare', 'bw', 'colorpopout', 'originalvsnew', 'conjunctions']#,'noscale','nofscale']
 captions = [
     ['Miconi Serial', 'Miconi Popout', 'Conjunctions'],
-    ['Full', 'Single-opponent', 'Double-opponent', 'bw'],
-    ['Full', 'Black-and-white'],
+    ['Full', 'Single-opponent', 'Double-opponent'],
+    ['Full', 'Black-and-white', 'Double-opponent'],
     ['Color Popout', 'Shape Popout', 'Miconi Popout'],
     ['Conjunctions', 'Black-and-white', 'Single-opponent', 'Double-opponent'],
     # ['multiconjunction', 'multiconjunction_bw', 'multiconjunction_so','multiconjunction_do'],

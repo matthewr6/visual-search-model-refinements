@@ -487,7 +487,7 @@ def main(which, outname=None, scenepath=None, feature_mode='both', prio_scaling=
 if __name__ == '__main__':
     modes = ['run', 'show', 'imgprots', 'objprots', 'batch', 'allprots']
 
-    which = 'batch'
+    which = 'show'
     assert which in modes
 
     # outname, scenepath, feature_mode, prio_scaling, feedback_scaling = (None, None, None, None, None)
