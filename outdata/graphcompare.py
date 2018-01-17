@@ -6,31 +6,49 @@ import matplotlib.pyplot as plt
 
 # sns.set(style="white")
 
+colors = {
+    'miconi_serial': '#061539', # blues
+    'miconi_popout': '#7887AB',
+
+    'conjunctions': '#2D882D', # green
+
+    'bw': '#686868', # shades of black/gray
+    'bw_so': '#0C0C0C',
+    'bw_do': '#C6C5C5',
+
+    'colorpopout': '#AA6C39', #orange-brown
+    'colorpopout_bw': '#552700',
+    'colorpopout_do': '#D49A6A',
+}
+
 global_datatypes = [
     ['miconi_serial', 'miconi_popout', 'conjunctions'],
     ['bw', 'bw_so', 'bw_do'],
     ['colorpopout', 'colorpopout_bw', 'colorpopout_do'],
-    ['colorpopout', 'bw', 'miconi_popout'],
-    ['conjunctions', 'conjunctions_bw', 'conjunctions_so','conjunctions_do'],
-    # ['multiconjunction', 'multiconjunction_bw', 'multiconjunction_so','multiconjunction_do'],
-    # ['conjunctions', 'conjunctions_noscale', 'bw', 'bw_noscale', 'colorpopout', 'colorpopout_noscale'],
-    # ['conjunctions', 'conjunctions_nofscale', 'bw', 'bw_nofscale', 'colorpopout', 'colorpopout_nofscale'],
-    # ['intensityanddoubles/conjunctions', 'intensityanddoubles/conjunctions_bw', 'intensityanddoubles/conjunctions_so','intensityanddoubles/conjunctions_do'],
+    ['conjunctions', 'conjunctions_noscale', 'bw', 'bw_noscale', 'colorpopout', 'colorpopout_noscale'],
+    # ['colorpopout', 'bw', 'miconi_popout'],
+    # ['conjunctions', 'conjunctions_bw', 'conjunctions_so','conjunctions_do'],
 ]
-titles = ['regressioncompare', 'bw', 'colorpopout', 'originalvsnew', 'conjunctions']#,'noscale','nofscale']
+titles = ['regressioncompare', 'bw', 'colorpopout', 'noscale'] #'originalvsnew', 'conjunctions'
+humantitles = [
+    'Serial, parallel, and conjunction searches',
+    'Shape popout',
+    'Color popout',
+    'No feature scaling'
+    # 'originalvsnew', # not used
+    # 'conjunctions', # not used
+]
 captions = [
-    ['Miconi Serial', 'Miconi Popout', 'Conjunctions'],
-    ['Full', 'Single-opponent', 'Double-opponent'],
-    ['Full', 'Black-and-white', 'Double-opponent'],
-    ['Color Popout', 'Shape Popout', 'Miconi Popout'],
-    ['Conjunctions', 'Black-and-white', 'Single-opponent', 'Double-opponent'],
-    # ['multiconjunction', 'multiconjunction_bw', 'multiconjunction_so','multiconjunction_do'],
-    # ['Conjunctions', 'Conjunctions (no feature scaling)', 'Shape Popout', 'Shape Popout (no feature scaling)', 'Color Popout', 'Color Popout (no feature scaling)'],
-    # ['Conjunctions', 'Conjunctions (no exp. scaling)', 'Shape Popout', 'Shape Popout (no exp. scaling)', 'Color Popout', 'Color Popout (no exp. scaling)'],
-    # ['Conjunctions', 'Black-and-white', 'Single-opponent', 'Double-opponent'],
+    ['Serial search (model by Miconi et al)', 'Parallel search (model by Miconi et al)', 'Conjunctions'],
+    ['Full model', 'Single-opponent channel only', 'Double-opponent channel only'],
+    ['Full model', 'Grayscale channel only', 'Double-opponent channel only'],
+    ['Conjunctions', 'Conjunctions (no feature scaling)', 'Shape Popout', 'Shape Popout (no feature scaling)', 'Color Popout', 'Color Popout (no feature scaling)'],
+    # ['Color Popout', 'Shape Popout', 'Miconi Popout'],
+    # ['Conjunctions', 'Grayscale channel only', 'Single-opponent channel only', 'Double-opponent channel only'],
 ]
 assert len(titles) == len(global_datatypes)
 assert len(captions) == len(titles)
+assert len(captions) == len(humantitles)
 n = len(titles)
 
 for i in range(n):
@@ -52,10 +70,14 @@ for i in range(n):
 
         unzipped = zip(*points)
         m, b = np.polyfit(unzipped[0], unzipped[1], 1)
-        l = plt.plot(linebounds, m*np.array(linebounds) + b, linewidth=2)#, linestyle=lstyles[datatype])
+        color = colors.get(datatype.replace('_noscale', ''))
+        linestyle = '-'
+        if 'noscale' in datatype:
+            linestyle = '--' # dashed
+        l = plt.plot(linebounds, m*np.array(linebounds) + b, linewidth=2, color=color, linestyle=linestyle)#, linestyle=lstyles[datatype])
         lines.append(l[0])
 
-    plt.suptitle('Model Performance Regression')
+    plt.suptitle(humantitles[i])
     legend = plt.legend(lines, captions[i], loc=2)
     plt.xlim(left=3, right=18)
     plt.ylim(bottom=0, top=14)

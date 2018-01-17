@@ -487,7 +487,7 @@ def main(which, outname=None, scenepath=None, feature_mode='both', prio_scaling=
 if __name__ == '__main__':
     modes = ['run', 'show', 'imgprots', 'objprots', 'batch', 'allprots']
 
-    which = 'show'
+    which = 'batch'
     assert which in modes
 
     # outname, scenepath, feature_mode, prio_scaling, feedback_scaling = (None, None, None, None, None)
@@ -498,7 +498,7 @@ if __name__ == '__main__':
         feedback_scaling = True
 
         # 1-3 and then 1-4
-        scenepath = ['bw', 'colorpopout', 'conjunctions', 'shapepopout', 'multiconjunction'][scenetypeidx-1]
+        scenepath = ['bw2', 'bw', 'colorpopout', 'conjunctions', 'shapepopout', 'multiconjunction'][scenetypeidx-1]
         feature_mode = ['bw', 'so', 'do', 'both'][modetypeidx-1]
 
         outname = 'intensityanddoubles/{}'.format(scenepath)

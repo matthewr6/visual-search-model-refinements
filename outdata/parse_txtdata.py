@@ -15,7 +15,8 @@ basenames = ['intensityanddoubles/conjunctions', 'intensityanddoubles/conjunctio
 
 basenames = ['bw', 'bw_do', 'bw_so', 'bw_bw', 'colorpopout', 'colorpopout_bw',
              'colorpopout_do', 'conjunctions_bw', 'conjunctions_so',
-             'conjunctions_do']
+             'conjunctions_do', 'bw_noscale', 'conjunctions_noscale',
+             'colorpopout_noscale', 'bw2_noscale', 'bw2_do_noscale', 'bw2_so_noscale', 'bw2_bw_noscale']
 
 for basename in basenames:
 
